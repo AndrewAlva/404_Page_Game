@@ -73,6 +73,12 @@ RAF.init();
 // Canvas
 var Game_Canvas = {
 	background: "#202020",
+
+	reset: function(){
+		RAF.stop();
+		RAF.els = [Game_Canvas];
+		RAF.animate();
+	},
 	
 	init: function() {
 		canvas = document.createElement('canvas');
@@ -182,6 +188,12 @@ var Points_Score = {
 	getScorePosition: function(){
 		this.pos.x = maxWidth - this.pos.rightDist;
 	},
+
+	reset: function(){
+		this.score = 0;
+		RAF.add(Points_Score);
+	},
+
 	
 	init: function(){
 		this.getScorePosition();
@@ -197,10 +209,6 @@ var Points_Score = {
 
 	resize: function(){
 		this.getScorePosition();
-	},
-
-	reset: function(){
-		this.score = 0;
 	}
 }
 
@@ -213,7 +221,8 @@ RAF.add(Points_Score);
 
 // Player object
 var Player = {
-	started: false,
+	initialized: false,
+	played: false,
 	color: "#05f",
 	width: 62,
 	height: 88,
@@ -247,23 +256,28 @@ var Player = {
 
 	addListeners: function(){
 		var _self = this;
+
 		document.addEventListener('keydown', function(event){
 			if(event.keyCode == 37){
 				// console.log("arrow left pressed")
-				if(!_self.started) _self.started = true;
+				if(!_self.played) _self.played = true;
 
 				_self.pos.x -= _self.speed;
 				if(_self.pos.x < 0) _self.pos.x = 0;
 			} else if (event.keyCode == 39){
 				// console.log("arrow right pressed")
-				if(!_self.started) _self.started = true;
+				if(!_self.played) _self.played = true;
 
 				_self.pos.x += _self.speed;
 				if(_self.pos.x > (canvas.width - _self.width)) _self.pos.x = canvas.width - _self.width;
 			}
 			
 			_self.updateCollision();
-		})
+		});
+	},
+
+	reset: function(){
+		RAF.add(Player);
 	},
 
 	init: function(){
@@ -271,7 +285,10 @@ var Player = {
 		this.pos.y = maxHeight - this.height - this.floorDistance;
 		this.updateCollision();
 		
-		this.addListeners();
+		if (!this.initialized) {
+			this.initialized = true;
+			this.addListeners();
+		}
 	},
 
 	render: function(){
@@ -281,9 +298,9 @@ var Player = {
 	},
 
 	resize: function(){
-		if(this.pos.x > (canvas.width - this.width) && this.started) {
+		if(this.pos.x > (canvas.width - this.width) && this.played) {
 			this.pos.x = canvas.width - this.width;
-		} else if(!this.started) {
+		} else if(!this.played) {
 			this.pos.x = halfWidth - (this.width/2);
 		}
 	}
@@ -480,12 +497,22 @@ var Game_Difficulty = {
 		clearInterval(this.crazyMode);
 	},
 
-	updateDifficulty: function(){
+	updateDifficultyDisplay: function(){
 		this.display = this.text + this.totalEnemies;
 	},
 
 	getPosition: function(){
 		this.pos.x = maxWidth - this.pos.rightDist;
+	},
+
+	reset: function(){
+		// Difficulty reset
+		this.stop();
+		this.totalEnemies = 1;
+		this.enemiesArray = [];
+		this.crazySpeed = 2000;
+		this.crazyAccel = 1;
+		RAF.add(Game_Difficulty);
 	},
 
 
@@ -500,7 +527,7 @@ var Game_Difficulty = {
 		context.font = this.font;
 		context.fillStyle = this.color;
 		context.fillText(this.display, this.pos.x, this.pos.y);
-		this.updateDifficulty();
+		this.updateDifficultyDisplay();
 	},
 
 	resize: function(){
@@ -515,29 +542,29 @@ RAF.add(Game_Difficulty);
 
 // Reset Game
 function resetGame(){
-	// RAF reset
-	RAF.els = [];
-	RAF.animate();
+	// RAF & Game reset
+	// RAF.els = [Game_Canvas];
+	// RAF.animate();
+	Game_Canvas.reset();
 
-	// Canvas reset
-	RAF.add(Game_Canvas);
 
 	// Score reset
-	RAF.add(Points_Score);
+	// Points_Score.score = 0;
+	// RAF.add(Points_Score);
+	Points_Score.reset();
 
 	// Player reset
-	RAF.add(Player);
+	// RAF.add(Player);
+	Player.reset();
 
 	// Difficulty reset
-	Game_Difficulty.totalEnemies = 1;
-	Game_Difficulty.enemiesArray = [];
-	Game_Difficulty.crazySpeed = 2000;
-	Game_Difficulty.crazyAccel = 1;
-
-	// Player reset
-
-	// Score reset
-	Points_Score.score = 0;
+	// Game_Difficulty.stop();
+	// Game_Difficulty.totalEnemies = 1;
+	// Game_Difficulty.enemiesArray = [];
+	// Game_Difficulty.crazySpeed = 2000;
+	// Game_Difficulty.crazyAccel = 1;
+	// RAF.add(Game_Difficulty);
+	Game_Difficulty.reset();
 
 }
 
