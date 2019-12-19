@@ -1,4 +1,7 @@
-# OG_Brunch
+# 404 Game | 2D Canvas
+2D game built with javascript canvas for 404 pages.
+
+## OG_Brunch
 My first brunch boilerplate created from scratch.
 
 

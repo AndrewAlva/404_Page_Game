@@ -17,18 +17,24 @@ function onResizeWindow() {
 }
 
 
+var RAFrequest = undefined;
 
 // Request Animation Frame (RAF) object to optimize performance adding all animations in and running a single RAF
 var RAF = {
+	status: false, // false means off
+	switch: undefined,
+
     els: [],
+
     add: function(object) {
-    	this.els.push(object);
-      object.init();
+    	this.els.unshift(object);
+    	object.init();
     },
     remove: function(object) {
     	var idx = this.els.indexOf(object);
     	this.els.splice(idx, 1);
     },
+
     init: function() {
 		var _self = this;
 		this.animate();
@@ -36,10 +42,15 @@ var RAF = {
 			_self.resize();
 		}, false);
     },
+
     animate: function() {
-        requestAnimationFrame(RAF.animate);
+        RAFrequest = requestAnimationFrame(RAF.animate);
         RAF.render();
     },
+    stop: function(){
+    	window.cancelAnimationFrame(RAFrequest);
+    },
+
     render: function() {
         for (var i = 0; i < RAF.els.length; i++) {
             RAF.els[i].render();
@@ -90,16 +101,111 @@ RAF.add(Game_Canvas);
 
 
 
-// Game score
-var Game_Score = {
-	text: 'Score: ',
+// Game score: Time version
+// var Time_Score = {
+// 	text: 'Score:  ',
+// 	score: 0,
+// 	display: '',
+// 	font: "24px GP, Helvetica",
+// 	color: "#fff",
+// 	clock: null,
+
+// 	pos: {
+// 		x: 0,
+// 		y: 40,
+// 		rightDist: 292
+// 	},
+
+// 	updateScore: function() {
+// 		this.display = this.text + this.score + ' s';
+// 	},
+
+// 	startScoring: function(){
+// 		var _self = this;
+
+// 		this.clock = setInterval(function(){
+// 			_self.score += 1;
+// 			_self.updateScore();
+// 		}, 1000);
+// 	},
+
+// 	stopScoring: function(){
+// 		clearInterval(this.clock);
+// 	},
+
+// 	getScorePosition: function(){
+// 		this.pos.x = maxWidth - this.pos.rightDist;
+// 	},
+	
+// 	init: function(){
+// 		this.getScorePosition();
+// 		this.startScoring();
+// 		this.updateScore();
+// 	},
+
+// 	render: function(){
+// 		context.font = this.font;
+// 		context.fillStyle = this.color;
+// 		context.fillText(this.display, this.pos.x, this.pos.y);
+// 	},
+
+// 	resize: function(){
+// 		this.getScorePosition();
+// 	}
+// }
+
+// // Start score
+// RAF.add(Time_Score);
+
+
+
+
+// Game score: Points version
+var Points_Score = {
+	text: 'Score:  ',
 	score: 0,
 	display: '',
+	font: "24px GP, Helvetica",
+	color: "#fff",
+	clock: null,
+
+	pos: {
+		x: 0,
+		y: 40,
+		rightDist: 292
+	},
+
+	updateScore: function() {
+		this.display = this.text + this.score + ' dodged';
+	},
+
+	getScorePosition: function(){
+		this.pos.x = maxWidth - this.pos.rightDist;
+	},
 	
-	init: function(){},
-	render: function(){},
-	resize: function(){}
+	init: function(){
+		this.getScorePosition();
+		this.updateScore();
+	},
+
+	render: function(){
+		context.font = this.font;
+		context.fillStyle = this.color;
+		context.fillText(this.display, this.pos.x, this.pos.y);
+		this.updateScore();
+	},
+
+	resize: function(){
+		this.getScorePosition();
+	},
+
+	reset: function(){
+		this.score = 0;
+	}
 }
+
+// Start score
+RAF.add(Points_Score);
 
 
 
@@ -108,33 +214,37 @@ var Game_Score = {
 // Player object
 var Player = {
 	started: false,
-	color: "#ff6600",
-	width: 20,
-	height: 30,
+	color: "#05f",
+	width: 62,
+	height: 88,
 	floorDistance: 30,
-	
-	speed: 10,
+
+	speed: 30,
 
 	pos: {
 		x: 0,
 		y: 0
 	},
-	
+
 	collisionX: {
 		start: 0,
 		end: 0
 	},
-	
-	collisionY: 0,
+
+	collisionY: {
+		start: 0,
+		end: 0
+	},
 	
 	updateCollision: function(){
 		this.collisionX.start = this.pos.x;
 		this.collisionX.end = this.pos.x + this.width;
-		
-		
-		this.collisionY = this.pos.y;
+
+
+		this.collisionY.start = this.pos.y;
+		this.collisionY.end = this.pos.y + this.height;
 	},
-	
+
 	addListeners: function(){
 		var _self = this;
 		document.addEventListener('keydown', function(event){
@@ -155,7 +265,7 @@ var Player = {
 			_self.updateCollision();
 		})
 	},
-	
+
 	init: function(){
 		this.pos.x = halfWidth - (this.width/2);
 		this.pos.y = maxHeight - this.height - this.floorDistance;
@@ -163,13 +273,13 @@ var Player = {
 		
 		this.addListeners();
 	},
-	
+
 	render: function(){
 		context.globalAlpha = 1;
 		context.fillStyle= this.color;
 		context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
 	},
-	
+
 	resize: function(){
 		if(this.pos.x > (canvas.width - this.width) && this.started) {
 			this.pos.x = canvas.width - this.width;
@@ -177,7 +287,6 @@ var Player = {
 			this.pos.x = halfWidth - (this.width/2);
 		}
 	}
-
 }
 
 // Initialize Player
@@ -191,8 +300,8 @@ var Four = function(args) {
 	if (args === undefined) var args = {};
 	
 	this.color = "#ff0000";
-	this.width = 15;
-	this.height = 15;
+	this.width = 78;
+	this.height = 105;
 	
 	this.speed = 12;
 	this.maxSpeed = 10;
@@ -208,23 +317,89 @@ var Four = function(args) {
 		end: 0
 	};
 	
-	this.collisionY = 0;
+	this.collisionY = {
+		start: 0,
+		end: 0
+	};
 	
 	this.updateCollision = function(){
 		this.collisionX.start = this.pos.x;
 		this.collisionX.end = this.pos.x + this.width;
 
 
-		this.collisionY = this.pos.y + this.height;
+		this.collisionY.start = this.pos.y;
+		this.collisionY.end = this.pos.y + this.height;
+	};
+
+	this.detectCollision = function(){
+		if(this.collisionX.end > Player.collisionX.start &&
+			this.collisionY.end > Player.collisionY.start &&
+			this.collisionX.end < Player.collisionX.end &&
+			this.collisionY.end < Player.collisionY.end) {
+			this.collisioned();
+
+		} else if (this.collisionX.start > Player.collisionX.start &&
+					this.collisionY.end > Player.collisionY.start &&
+					this.collisionX.start < Player.collisionX.end &&
+					this.collisionY.end < Player.collisionY.end) {
+			this.collisioned();
+
+		} else if (this.collisionX.end > Player.collisionX.start &&
+					this.collisionY.start > Player.collisionY.start &&
+					this.collisionX.end < Player.collisionX.end &&
+					this.collisionY.start < Player.collisionY.end) {
+			this.collisioned();
+
+		} else if (this.collisionX.start > Player.collisionX.start &&
+					this.collisionY.start > Player.collisionY.start &&
+					this.collisionX.start < Player.collisionX.end &&
+					this.collisionY.start < Player.collisionY.end) {
+			this.collisioned();
+
+		} else if (Player.collisionX.end > this.collisionX.start &&
+					Player.collisionY.end > this.collisionY.start &&
+					Player.collisionX.end < this.collisionX.end &&
+					Player.collisionY.end < this.collisionY.end) {
+			this.collisioned();
+
+		} else if (Player.collisionX.start > this.collisionX.start &&
+					Player.collisionY.end > this.collisionY.start &&
+					Player.collisionX.start < this.collisionX.end &&
+					Player.collisionY.end < this.collisionY.end) {
+			this.collisioned();
+
+		} else if (Player.collisionX.end > this.collisionX.start &&
+					Player.collisionY.start > this.collisionY.start &&
+					Player.collisionX.end < this.collisionX.end &&
+					Player.collisionY.start < this.collisionY.end) {
+			this.collisioned();
+
+		} else if (Player.collisionX.start > this.collisionX.start &&
+					Player.collisionY.start > this.collisionY.start &&
+					Player.collisionX.start < this.collisionX.end &&
+					Player.collisionY.start < this.collisionY.end) {
+			this.collisioned();
+
+		} else {
+			this.color = "#f00";
+		}
+	};
+
+	this.collisioned = function(){
+		this.color = "#05f";
+		RAF.stop();
 	};
 	
 	this.fall = function(){
 		this.pos.y += this.speed;
-		if (this.pos.y > maxHeight) this.reset();
+		if (this.pos.y > maxHeight) {
+			this.reset();
+			Points_Score.score += 1;	// Special setup for point scoring
+		}
 	};
 	
 	this.reset = function(){
-		this.pos.y = 0;
+		this.pos.y = 0 - this.height;
 		this.pos.x = (Math.random() * canvas.width) - this.width;
 		this.speed = (Math.random() * (this.maxSpeed - this.minSpeed) + this.minSpeed);
 	};
@@ -239,13 +414,136 @@ var Four = function(args) {
 		context.fillRect(this.pos.x, this.pos.y, this.width, this.height);
 		
 		this.fall();
+
+		this.updateCollision();
+		this.detectCollision();
 	};
 	
 	this.resize = function(){};
 }
 
 
-var _enemyTest = new Four();
-var _enemyTest2 = new Four();
-RAF.add(_enemyTest);
-RAF.add(_enemyTest2);
+
+
+// Game difficulty (that means enemies and how much are there)
+var Game_Difficulty = {
+	totalEnemies: 1,
+	enemiesArray: [],
+	crazyMode: null,
+	crazySpeed: 2000,
+	crazyAccel: 1,
+	crazySpeedLimit: 1000,
+
+	font: "24px GP, Helvetica",
+	color: "#fff",
+	text: "Current enemies: ",
+	display: "",
+	pos: {
+		x: 0,
+		y: 100,
+		rightDist: 292
+	},
+
+	createEnemies: function(){
+		var _self = this;
+
+		for (var i = 0; i < _self.totalEnemies; i++) {
+			var _newEnemy = new Four();
+			_self.enemiesArray.push(_newEnemy);
+		}
+
+		for (var i = 0; i < _self.enemiesArray.length; i++) {
+			RAF.add(_self.enemiesArray[i]);
+		}
+	},
+
+	increaseDifficulty: function(){
+		var _self = this;
+
+		this.crazySpeed -= this.crazyAccel;
+		if (this.crazySpeed <= this.crazySpeedLimit ) {
+			this.crazySpeed = this.crazySpeedLimit
+		} else {
+			this.crazyAccel += this.crazyAccel;
+		}
+
+		this.crazyMode = setInterval(function(){
+			var _enemy = new Four();
+			RAF.add(_enemy);
+
+			_self.totalEnemies += 1;
+
+		}, this.crazySpeed);
+	},
+
+	stop: function(){
+		clearInterval(this.crazyMode);
+	},
+
+	updateDifficulty: function(){
+		this.display = this.text + this.totalEnemies;
+	},
+
+	getPosition: function(){
+		this.pos.x = maxWidth - this.pos.rightDist;
+	},
+
+
+	init: function(){
+		var _self = this;
+		this.getPosition();
+		this.createEnemies();
+		this.increaseDifficulty();
+	},
+
+	render: function(){
+		context.font = this.font;
+		context.fillStyle = this.color;
+		context.fillText(this.display, this.pos.x, this.pos.y);
+		this.updateDifficulty();
+	},
+
+	resize: function(){
+		this.getPosition();
+	}
+}
+
+// Trigger game difficulty
+RAF.add(Game_Difficulty);
+
+
+
+// Reset Game
+function resetGame(){
+	// RAF reset
+	RAF.els = [];
+	RAF.animate();
+
+	// Canvas reset
+	RAF.add(Game_Canvas);
+
+	// Score reset
+	RAF.add(Points_Score);
+
+	// Player reset
+	RAF.add(Player);
+
+	// Difficulty reset
+	Game_Difficulty.totalEnemies = 1;
+	Game_Difficulty.enemiesArray = [];
+	Game_Difficulty.crazySpeed = 2000;
+	Game_Difficulty.crazyAccel = 1;
+
+	// Player reset
+
+	// Score reset
+	Points_Score.score = 0;
+
+}
+
+
+window.addEventListener('click', function(){
+	resetGame();
+})
+
+
