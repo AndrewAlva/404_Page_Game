@@ -224,8 +224,8 @@ var Player = {
 	initialized: false,
 	played: false,
 	color: "#05f",
-	width: 62,
-	height: 88,
+	width: 32,
+	height: 28,
 	floorDistance: 30,
 
 	speed: 30,
@@ -317,10 +317,10 @@ var Four = function(args) {
 	if (args === undefined) var args = {};
 	
 	this.color = "#ff0000";
-	this.width = 78;
-	this.height = 105;
+	this.width = 28;
+	this.height = 35;
 	
-	this.speed = 12;
+	this.speed = 8;
 	this.maxSpeed = 10;
 	this.minSpeed = 5;
 
@@ -449,7 +449,7 @@ var Game_Difficulty = {
 	crazyMode: null,
 	crazySpeed: 2000,
 	crazyAccel: 1,
-	crazySpeedLimit: 1000,
+	crazySpeedLimit: 500,
 
 	font: "24px GP, Helvetica",
 	color: "#fff",
@@ -477,24 +477,28 @@ var Game_Difficulty = {
 	increaseDifficulty: function(){
 		var _self = this;
 
-		this.crazySpeed -= this.crazyAccel;
-		if (this.crazySpeed <= this.crazySpeedLimit ) {
-			this.crazySpeed = this.crazySpeedLimit
-		} else {
-			this.crazyAccel += this.crazyAccel;
-		}
-
-		this.crazyMode = setInterval(function(){
+		this.crazyMode = setTimeout(function(){
 			var _enemy = new Four();
 			RAF.add(_enemy);
 
 			_self.totalEnemies += 1;
+			_self.crazySpeed -= _self.crazyAccel;
+
+			if (_self.crazySpeed <= _self.crazySpeedLimit ) {
+				_self.crazySpeed = _self.crazySpeedLimit;
+				_self.stop();
+			}
+
+			_self.increaseDifficulty();
+			// console.log("increasing speed: " + _self.crazySpeed + "ms");
 
 		}, this.crazySpeed);
 	},
 
 	stop: function(){
-		clearInterval(this.crazyMode);
+		// clearInterval(this.crazyMode);
+		clearTimeout(this.crazyMode);	// Not really stopping the interval
+		this.crazyMode = null;
 	},
 
 	updateDifficultyDisplay: function(){
